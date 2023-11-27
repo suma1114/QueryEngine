@@ -1,1 +1,38 @@
+!pip install spacy pandas faiss-cpu
+
+import spacy
+import pandas as pd
+import numpy as np
+import faiss
+
+!python -m spacy download en_core_web_md
+nlp = spacy.load("en_core_web_md")
+
+
+csv_file_path = '/content/bigBasketProducts.csv'
+df = pd.read_csv(csv_file_path)
+
+
+documents = df['description'].astype(str).tolist()
+
+def get_document_vector(text):
+    doc = nlp(text)
+    return doc.vector
+
+document_vectors = [get_document_vector(text) for text in documents]
+
+d = len(document_vectors[0])
+index = faiss.IndexFlatL2(d)
+document_vectors_np = np.array(document_vectors, dtype=np.float32)
+index.add(document_vectors_np)
+
+query_text = "query text"
+query_vector = get_document_vector(query_text)
+query_vector_np = np.array([query_vector], dtype=np.float32)
+
+
+_, similar_indices = index.search(query_vector_np, k)
+
+similar_products = df.loc[similar_indices[0], 'product'].tolist()
+print("Similar Products:", similar_products)
 
